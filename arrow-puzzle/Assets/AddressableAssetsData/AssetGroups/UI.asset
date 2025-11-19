@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: UI
+  m_EditorClassIdentifier: 
+  m_GroupName: UI
+  m_Data:
+    m_SerializedData: []
+  m_GUID: a31be5be35aa428499d0c22c0d73f269
+  m_SerializeEntries:
+  - m_GUID: 5a4dd42d75c03f94ea84d71bed7a3c89
+    m_Address: Assets/00 Game/UI/UIGameOver/Prefabs/UIGameOver.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7b8a573d9fb350f4f9376db502d6c81d
+    m_Address: Assets/00 Game/UI/UILevelComplete/Prefabs/UILevelComplete.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: a2c26881a688bb34b8f4076dc986f02b, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 6275de18d157d13459cd126034dfc7c5, type: 2}
+    - {fileID: 11400000, guid: a9b2e878d69ad554393e3ee37345513c, type: 2}

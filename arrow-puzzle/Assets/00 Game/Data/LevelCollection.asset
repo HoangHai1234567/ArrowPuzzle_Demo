@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 394f8729d0641594aa8dba448439fe78, type: 3}
+  m_Name: LevelCollection
+  m_EditorClassIdentifier: 
+  _defaultLevel:
+    LevelAsset:
+      m_AssetGUID: 
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    Name: 
+    Description: 
+  _levels:
+  - LevelAsset:
+      m_AssetGUID: 3d10b4aa21849c84eae2c19bcf101150
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 1
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 55ae4e0c71ea00a4fafe5898994c551a
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 2
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 850ca646411867b4197673533aed38c1
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 3
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: b4dd6c27ff3551648af3c91ef9e4d146
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 4
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 2aa6e40f6eecdee44b2d6d3b3178cf37
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 5
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 042f762b6628f7540b2376812d85fa1f
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 6
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 78757c64f88110544ae20f192ec4fe87
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 7
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 0423cb9f6ff4816498341925bcfacc53
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 8
+    Description: 
+  - LevelAsset:
+      m_AssetGUID: 7bc891b3fc6cfd6498d6884b7a961a8f
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    Name: 9
+    Description: 

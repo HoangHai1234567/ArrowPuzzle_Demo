@@ -1,0 +1,12 @@
+v1.0
+- first release
+
+v1.01
+- add Texture draw
+
+v1.02
+- add Texture draw color
+
+v1.1.0
+- add preview Image
+- change grid size

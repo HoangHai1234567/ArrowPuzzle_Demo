@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Levels
+  m_EditorClassIdentifier: 
+  m_GroupName: Levels
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 6f067ca92ee2bc04da21aa169f157fab
+  m_SerializeEntries:
+  - m_GUID: 042f762b6628f7540b2376812d85fa1f
+    m_Address: Assets/00 Game/Levels/Test/6.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2aa6e40f6eecdee44b2d6d3b3178cf37
+    m_Address: Assets/00 Game/Levels/Test/5.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3d10b4aa21849c84eae2c19bcf101150
+    m_Address: Assets/00 Game/Levels/Test/1.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55ae4e0c71ea00a4fafe5898994c551a
+    m_Address: Assets/00 Game/Levels/Test/2.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 78757c64f88110544ae20f192ec4fe87
+    m_Address: Assets/00 Game/Levels/Test/7.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 850ca646411867b4197673533aed38c1
+    m_Address: Assets/00 Game/Levels/Test/3.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b4dd6c27ff3551648af3c91ef9e4d146
+    m_Address: Assets/00 Game/Levels/Test/4.json
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c7c3e6a4eb9f4204b84b8909ffce4dba
+    m_Address: Assets/00 Game/Data/LevelCollection.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: a2c26881a688bb34b8f4076dc986f02b, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 754a60ce3af086345ba1c07bbc01249b, type: 2}
+    - {fileID: 11400000, guid: 9873400da0c08e2448aac22baf23a8d8, type: 2}
