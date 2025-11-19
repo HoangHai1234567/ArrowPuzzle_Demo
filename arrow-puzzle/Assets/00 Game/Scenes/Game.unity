@@ -12847,7 +12847,7 @@ MonoBehaviour:
   _dotPrefab: {fileID: 7864051131666553497, guid: f0bb421c32dfb234ea22a34f2624e4da, type: 3}
   _arrowMoveSpeed: 1.4
   _levelParent: {fileID: 172555230}
-  _levelParentOffset: {x: 0, y: -4}
+  _levelParentOffset: {x: 0, y: -6}
   _lineRendererHighlight: {fileID: 1613605895}
 --- !u!114 &1153039948
 MonoBehaviour:
@@ -18610,7 +18610,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4744993557553964, guid: b696f154782ec494cb60a54a846e2fc0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10.81293
+      value: 10.17
       objectReference: {fileID: 0}
     - target: {fileID: 4744993557553964, guid: b696f154782ec494cb60a54a846e2fc0, type: 3}
       propertyPath: m_LocalPosition.z

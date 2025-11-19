@@ -230,7 +230,7 @@ MonoBehaviour:
   maxDeathTime: 4
   attackDamage: 10
   attackRange: 0.5
-  attackCooldown: 6
+  attackCooldown: 2
   attackDuration: 0.7
   attackPoint: {fileID: 543654833962479452}
   towerLayer:
