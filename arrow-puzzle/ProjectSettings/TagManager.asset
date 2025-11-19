@@ -3,7 +3,12 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Arrow
+  - Portal
+  - Enemy
+  - Tower
+  - Ground
   layers:
   - Default
   - TransparentFX
@@ -11,10 +16,10 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
+  - Ground
+  - Tower
+  - Enemy
+  - Arrow
   - 
   - 
   - 
@@ -38,12 +43,27 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: BackGround
+    uniqueID: 1133115041
+    locked: 0
+  - name: UI
+    uniqueID: 2229894517
+    locked: 0
+  - name: "SceneOb\u1EB9ct"
+    uniqueID: 222937781
+    locked: 0
+  - name: Tilemap
+    uniqueID: 2467397863
+    locked: 0
+  - name: Player
+    uniqueID: 1178269717
+    locked: 0
+  - name: Enemy
+    uniqueID: 3953210945
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
   - name: FX
     uniqueID: 2208256987
-    locked: 0
-  - name: UI
-    uniqueID: 2229894517
     locked: 0
