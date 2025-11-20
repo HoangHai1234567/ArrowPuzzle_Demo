@@ -33,7 +33,7 @@ namespace ArrowsPuzzle
 
         public int Level { get; private set; }
 
-        public bool IsPlaying { get;private set;}
+        public bool IsPlaying { get; private set; }
 
         public bool IsGameOver { get; private set; }
 
@@ -126,6 +126,13 @@ namespace ArrowsPuzzle
 
         private void GamePlay_OnGameReplay()
         {
+            // Reset băng đạn TRƯỚC khi load lại scene
+            var shooter = FindObjectOfType<PlayerShoot>();
+            if (shooter != null)
+            {
+                shooter.ResetMagazine();
+            }
+
             LoadGameScene();
         }
 
@@ -134,6 +141,20 @@ namespace ArrowsPuzzle
             Level++;
             PlayerPrefs.SetInt(Values.GameDataKeys.Level, Level);
             PlayerPrefs.Save();
+
+            // Reset băng đạn TRƯỚC khi sang level mới
+            var shooter = FindObjectOfType<PlayerShoot>();
+            if (shooter != null)
+            {
+                shooter.ResetMagazine();
+            }
+
+            //Reset TDGameManager
+            var tdManager = FindObjectOfType<TDGameManager>();
+            if (tdManager != null)
+            {  
+                tdManager.ResetTDGame();
+            }
 
             LoadGameScene();
         }
@@ -151,7 +172,7 @@ namespace ArrowsPuzzle
                 EventManager.GamePlay.OnLevelLoadedEvent(level);
                 _mapManager.Create(level, (() =>
                 {
-                    EventManager.GamePlay.OnLevelCreatedEvent(this,level);
+                    EventManager.GamePlay.OnLevelCreatedEvent(this, level);
                     EventManager.GamePlay.OnGamePlayEvent();
                 }));
             }));
@@ -200,18 +221,16 @@ namespace ArrowsPuzzle
 
         public void GameCompleted()
         {
-            _mapManager.ShowWinDots(0.5f,()=>
+            _mapManager.ShowWinDots(0.5f, () =>
             {
                 EventManager.UIEvents.OnRequestShowUILevelCompletedEvent(0, false);
             });
         }
         public void GameOver()
         {
-            EventManager.UIEvents.OnRequestShowUIGameOverEvent(0.5f,false);
+            EventManager.UIEvents.OnRequestShowUIGameOverEvent(0.5f, false);
         }
 
         #endregion
-
-
     }
 }

@@ -218,7 +218,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Health: 5
-  Speed: 2
+  Speed: 5
   groundCheck: {fileID: 6385157296786901926}
   groundCheckRadius: 0.2
   groundLayer:
@@ -236,6 +236,9 @@ MonoBehaviour:
   towerLayer:
     serializedVersion: 2
     m_Bits: 128
+  standPosition: {x: 0, y: 0, z: 0}
+  slotIndex: -1
+  reachThreshold: 0.05
 --- !u!114 &-3254073200273530054
 MonoBehaviour:
   m_ObjectHideFlags: 0

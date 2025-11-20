@@ -46,9 +46,6 @@ TagManager:
   - name: BackGround
     uniqueID: 1133115041
     locked: 0
-  - name: UI
-    uniqueID: 2229894517
-    locked: 0
   - name: "SceneOb\u1EB9ct"
     uniqueID: 222937781
     locked: 0
@@ -66,4 +63,7 @@ TagManager:
     locked: 0
   - name: FX
     uniqueID: 2208256987
+    locked: 0
+  - name: UI
+    uniqueID: 2229894517
     locked: 0

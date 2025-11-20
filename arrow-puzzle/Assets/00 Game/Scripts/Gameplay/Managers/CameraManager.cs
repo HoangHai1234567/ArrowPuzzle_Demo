@@ -56,12 +56,12 @@ namespace ArrowsPuzzle
 
 
         public float zoomSpeed = 5f;            
-        public float minZoom = 2f;              
-        public float maxZoom = 20f;
+        public float minZoom = 10f;              
+        public float maxZoom = 27f;
 
         [Header("Map Bounds")]
-        public Vector2 mapMin = new Vector2(-10f, -10f);
-        public Vector2 mapMax = new Vector2(10f, 10f);
+        public Vector2 mapMin = new Vector2(-15f, -15f);
+        public Vector2 mapMax = new Vector2(15f, 15f);
 
         private bool _isDragging = false;
 
@@ -202,18 +202,24 @@ namespace ArrowsPuzzle
 
         private void GamePlay_OnLevelLoaded(Level level)
         {
-            float x = level.Data.Width/10.0f;
-            float y = level.Data.Height/5.0f;
-            mapMin = new Vector2(-level.Data.Width / 2.0f - x, -level.Data.Height / 2.0f - y);
-            mapMax = new Vector2(level.Data.Width / 2.0f + x, level.Data.Height / 2.0f + y);
+            // f 
+            // mapMin = new Vector2(-level.Data.Width / 2.0f - x, -level.Data.Height / 2.0f - y);
+            // mapMax = new Vector2(level.Data.Width / 2.0f + x, level.Data.Height / 2.0f + y);
 
-            float minSizeByWidth = level.Data.Width / (2f * _camera.aspect);
-            float minSizeByHeight = level.Data.Height / 2f;
+            // float minSizeByWidth = level.Data.Width / (2f * _camera.aspect);
+            // float minSizeByHeight = level.Data.Height / 2f;
 
-            maxZoom = Mathf.Min(minSizeByWidth, minSizeByHeight) + 12;
-            minZoom = Mathf.Max(2f, maxZoom * 0.5f);
+            // maxZoom = Mathf.Min(minSizeByWidth, minSizeByHeight) + 12;
+            // minZoom = Mathf.Max(2f, maxZoom * 0.5f);
 
-            _camera.orthographicSize = maxZoom;
+            // _camera.orthographicSize = maxZoom;
+
+            maxZoom = 27f;
+            _camera.orthographicSize = 27f;
+
+
+            minZoom = minZoom;
+
         }
 
 

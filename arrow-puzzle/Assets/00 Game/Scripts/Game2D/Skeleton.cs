@@ -1,7 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+
 namespace ArrowsPuzzle
 {
     public class Skeleton : MonoBehaviour
@@ -20,6 +20,7 @@ namespace ArrowsPuzzle
         private Transform targetTower;
         private bool isGrounded;
         private bool isWalking;
+        private bool isAttacking = false;
         private bool facingRight = true;
 
         [Header("Death Effects")]
@@ -28,16 +29,11 @@ namespace ArrowsPuzzle
         public float deathGravotuyScale = 2f;
         public float maxDeathTime = 4f;
 
-        [Header("Attack")]
-        [SerializeField] private float attackDamage = 10f;
-        [SerializeField] private float attackRange = 0.5f;
-        [SerializeField] private float attackCooldown = 6f;
-        [SerializeField] private float attackDuration = 0.7f;
-        public Transform attackPoint;
-        [SerializeField] private LayerMask towerLayer;
-
-        private float nextAttackTime = 0f;
-        private bool isAttacking = false;
+        [Header("Stand Settings")]
+        public Vector3 standPosition;
+        public int slotIndex = -1;
+        private bool reachedStandPoint = false;
+        private float reachThreshold = 0.5f;
 
         void Awake()
         {
@@ -48,45 +44,18 @@ namespace ArrowsPuzzle
 
         void FixedUpdate()
         {
-            // 🔍 ONLY DEBUG HERE
-            // Debug.Log(
-            //     $"[Skeleton] {name} | t={Time.time:F2} | " +
-            //     $"Grounded={isGrounded} | Walking={isWalking} | Attacking={isAttacking} | " +
-            //     $"InRange={IsTowerInRange()} | Vel={rb.velocity}"
-            // );
-
             CheckGround();
 
-            if (targetTower == null)
+            if (!reachedStandPoint)
             {
-                isWalking = false;
-                isAttacking = false;
-
-                if (animator)
-                {
-                    animator.SetBool("isWalking", false);
-                    animator.SetBool("isAttacking", false);
-                }
-                return;
+                MoveToStandPoint();
+            }
+            else
+            {
+                StandAndFaceTower();
             }
 
-            if (isGrounded && !isAttacking)
-            {
-                if (!IsTowerInRange())
-                {
-                    MoveTowardsTower();
-                }
-                else
-                {
-                    TryAttackInRange();
-                }
-            }
-            else if (!isGrounded)
-            {
-                rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y);
-                isWalking = false;
-            }
-
+            // UPDATE ANIMATOR
             if (animator)
             {
                 animator.SetBool("isWalking", isWalking);
@@ -100,17 +69,52 @@ namespace ArrowsPuzzle
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
         }
 
-        void MoveTowardsTower()
+        /// <summary>
+        /// Enemy đi từ portal → standPosition
+        /// </summary>
+        void MoveToStandPoint()
         {
-            Vector2 direction = (targetTower.position - transform.position).normalized;
-            rb.velocity = new Vector2(direction.x * Speed, rb.velocity.y);
+            Vector2 current = rb.position;
+            Vector2 target = standPosition;
+
+            float dist = (target - current).magnitude;
+
+            if (dist <= reachThreshold)
+            {
+                rb.velocity = new Vector2(0f, rb.velocity.y);
+                reachedStandPoint = true;
+                isWalking = false;
+                isAttacking = false;
+                return;
+            }
+
+            Vector2 dir = (target - current).normalized;
+            rb.velocity = new Vector2(dir.x * Speed, rb.velocity.y);
 
             isWalking = true;
+            isAttacking = false;
 
-            if (direction.x > 0 && !facingRight)
-                Flip();
-            else if (direction.x < 0 && facingRight)
-                Flip();
+            FaceTowerOnly();
+        }
+
+        /// <summary>
+        /// Sau khi đến vị trí → đứng yên, idle, nhìn tower
+        /// </summary>
+        void StandAndFaceTower()
+        {
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+            isWalking = false;
+            isAttacking = false;
+            FaceTowerOnly();
+        }
+
+        void FaceTowerOnly()
+        {
+            if (targetTower == null) return;
+
+            float dx = targetTower.position.x - transform.position.x;
+            if (dx > 0 && !facingRight) Flip();
+            if (dx < 0 && facingRight) Flip();
         }
 
         void Flip()
@@ -139,6 +143,12 @@ namespace ArrowsPuzzle
                 animator.SetBool("isAttacking", false);
             }
 
+            gameObject.tag = "Untagged";
+
+            EnemyManager manager = FindObjectOfType<EnemyManager>();
+            if (manager != null)
+                manager.OnEnemyDied(this);
+
             this.enabled = false;
             StartCoroutine(DeathFallRoutine());
         }
@@ -154,8 +164,7 @@ namespace ArrowsPuzzle
             rb.constraints = RigidbodyConstraints2D.None;
 
             rb.AddForce(Vector2.up * deathJumpforce, ForceMode2D.Impulse);
-            float tourque = Random.Range(-deathTorque, deathTorque);
-            rb.AddTorque(tourque, ForceMode2D.Impulse);
+            rb.AddTorque(Random.Range(-deathTorque, deathTorque), ForceMode2D.Impulse);
 
             var col = GetComponent<Collider2D>();
             if (col) col.isTrigger = true;
@@ -167,12 +176,9 @@ namespace ArrowsPuzzle
             {
                 t += Time.deltaTime;
 
-                if (Camera.main != null)
-                {
-                    Vector3 screenPoint = Camera.main.WorldToViewportPoint(transform.position);
-                    if (screenPoint.y < 0 || screenPoint.x < 0 || screenPoint.x > 1)
-                        break;
-                }
+                Vector3 sp = Camera.main.WorldToViewportPoint(transform.position);
+                if (sp.y < 0 || sp.x < 0 || sp.x > 1)
+                    break;
 
                 yield return null;
             }
@@ -180,47 +186,7 @@ namespace ArrowsPuzzle
             Destroy(gameObject);
         }
 
-        void TryAttackInRange()
-        {
-            if (Time.time < nextAttackTime)
-            {
-                isWalking = false;
-                return;
-            }
-
-            rb.velocity = new Vector2(0f, rb.velocity.y);
-            isWalking = false;
-            isAttacking = true;
-
-            StartCoroutine(ResetAttackState());
-
-            nextAttackTime = Time.time + attackCooldown;
-        }
-
-        IEnumerator ResetAttackState()
-        {
-            yield return new WaitForSeconds(attackDuration);
-            isAttacking = false;
-        }
-
-        void Attack()  // Animation Event
-        {
-            if (attackPoint == null) return;
-
-            Collider2D hitTower = Physics2D.OverlapCircle(attackPoint.position, attackRange, towerLayer);
-
-            if (hitTower != null)
-            {
-                Tower tower = hitTower.GetComponent<Tower>();
-                if (tower != null)
-                    tower.TakeDamage(attackDamage);
-            }
-        }
-
-        bool IsTowerInRange()
-        {
-            Vector2 p = attackPoint ? (Vector2)attackPoint.position : (Vector2)transform.position;
-            return Physics2D.OverlapCircle(p, attackRange, towerLayer) != null;
-        }
+        // Attack block — vẫn giữ cho animator nhưng không dùng gameplay
+        void Attack() { }
     }
 }
