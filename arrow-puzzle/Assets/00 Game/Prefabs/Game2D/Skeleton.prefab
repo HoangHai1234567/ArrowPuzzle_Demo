@@ -224,21 +224,22 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  deathJumpforce: 5
-  deathTorque: 10
-  deathGravotuyScale: 2
-  maxDeathTime: 4
-  attackDamage: 10
-  attackRange: 0.5
-  attackCooldown: 2
-  attackDuration: 0.7
-  attackPoint: {fileID: 543654833962479452}
-  towerLayer:
-    serializedVersion: 2
-    m_Bits: 128
   standPosition: {x: 0, y: 0, z: 0}
   slotIndex: -1
   reachThreshold: 0.05
+  attackPoint: {fileID: 543654833962479452}
+  attackRange: 0.5
+  towerLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  attackDamage: 20
+  attacksPerSequence: 3
+  attackAnimDuration: 0.25
+  timeBetweenAttacks: 0.1
+  deathJumpforce: 5
+  deathTorque: 10
+  deathGravityScale: 2
+  maxDeathTime: 4
 --- !u!114 &-3254073200273530054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -251,7 +252,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29fff8b2d919cc249957b23986683463, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 2643153240629773473}
   fadeDuration: 0.5
   scriptsToEnableAfterFade: []
 --- !u!1 &8481316822132430758

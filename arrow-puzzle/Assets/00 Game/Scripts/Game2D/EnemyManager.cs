@@ -6,10 +6,10 @@ namespace ArrowsPuzzle
 {
     public class EnemyManager : MonoBehaviour
     {
-        [Header("Enemy Prefab")]
+        [Header("Enemy Spawn")]
         public GameObject defaultEnemyPrefab;
 
-        [Header("Fixed Stand Positions (3 slots)")]
+        [Tooltip("3 vị trí cố định mà enemy sẽ đứng trên scene")]
         public Transform[] standPoints = new Transform[3];
 
         [Header("Portal Settings")]
@@ -20,6 +20,13 @@ namespace ArrowsPuzzle
         [Header("Tracking")]
         public string enemyTag = "Enemy";
         public float scanInterval = 0.25f;
+
+        [Header("Attack Sequence Settings")]
+        [Tooltip("Điểm enemy sẽ float tới khi tấn công (đặt 1 empty gần tower)")]
+        public Transform towerAttackPoint;
+        public float attackMoveDuration = 0.4f;
+        public float attackStayDuration = 0.4f;
+        public float attackReturnDuration = 0.4f;
 
         private GameObject portal;
         private Transform portalTransform;
@@ -35,79 +42,50 @@ namespace ArrowsPuzzle
             if (portal != null)
                 portal.SetActive(false);
 
-            // Spawn 1 enemy cho mỗi slot cố định
             for (int i = 0; i < standPoints.Length; i++)
             {
                 if (standPoints[i] == null) continue;
                 StartCoroutine(SpawnEnemyToSlot(i));
             }
 
-            // vẫn giữ hệ thống scan để GetNearestEnemy hoạt động
             StartCoroutine(ScanEnemiesLoop());
         }
 
         void FindPortal()
         {
             portal = GameObject.FindGameObjectWithTag(portalTag);
-
-            if (portal == null)
-            {
-                Debug.LogError("[EnemyManager] Không tìm thấy Portal với tag: " + portalTag);
-                return;
-            }
+            if (portal == null) return;
 
             portalTransform = portal.transform;
-
             summonPoint = portalTransform.Find("SummonPoint");
-
-            if (summonPoint == null)
-            {
-                Debug.LogError("[EnemyManager] Portal không có child SummonPoint!");
-            }
         }
 
-        /// <summary>
-        /// Spawn 1 enemy từ portal, đi bộ ra đúng standPoint của slot tương ứng.
-        /// </summary>
         IEnumerator SpawnEnemyToSlot(int slotIndex)
         {
             if (defaultEnemyPrefab == null)
-            {
-                Debug.LogError("[EnemyManager] Chưa gán defaultEnemyPrefab!");
                 yield break;
-            }
 
             if (portal == null || summonPoint == null)
             {
                 FindPortal();
                 if (portal == null || summonPoint == null)
-                {
-                    Debug.LogError("[EnemyManager] Không thể spawn vì thiếu portal hoặc SummonPoint.");
                     yield break;
-                }
             }
 
             Transform standPoint = standPoints[slotIndex];
             if (standPoint == null)
-            {
-                Debug.LogWarning("[EnemyManager] standPoints[" + slotIndex + "] chưa được gán.");
                 yield break;
-            }
 
-            // Bật portal
             portal.SetActive(true);
             yield return new WaitForSeconds(portalOpenDelay);
 
-            // Spawn enemy tại SummonPoint
             Vector3 spawnPos = summonPoint.position;
             GameObject enemyObj = Instantiate(defaultEnemyPrefab, spawnPos, Quaternion.identity);
 
-            // Nếu có hiệu ứng spawn
-            EnemySpawnFade fade = enemyObj.GetComponent<EnemySpawnFade>();
+            var fade = enemyObj.GetComponent<EnemySpawnFade>();
             if (fade != null)
                 fade.PlaySpawnFX();
 
-            // Thiết lập thông tin slot + điểm đứng cho Skeleton
             Skeleton skeleton = enemyObj.GetComponent<Skeleton>();
             if (skeleton != null)
             {
@@ -115,54 +93,61 @@ namespace ArrowsPuzzle
                 skeleton.standPosition = standPoint.position;
             }
 
-            // Đăng ký enemy mới để PlayerShoot có thể target
             RegisterEnemy(enemyObj.transform);
 
-            // Tắt portal sau 1 lúc
             yield return new WaitForSeconds(portalCloseDelay);
             portal.SetActive(false);
         }
 
-        /// <summary>
-        /// Được gọi khi spawn enemy mới → thêm vào hệ thống
-        /// và thông báo PlayerShoot để xả băng đạn nếu có.
-        /// </summary>
         public void RegisterEnemy(Transform enemy)
         {
             if (!enemy) return;
-
-            ActiveEnemies.Add(enemy);
-
-            // Báo PlayerShoot rằng có enemy → nếu đang có đạn tích trữ thì xả
-            PlayerShoot shooter = FindObjectOfType<PlayerShoot>();
-            if (shooter != null)
-            {
-                shooter.TryFireStoredBullets();
-            }
+            if (!ActiveEnemies.Contains(enemy))
+                ActiveEnemies.Add(enemy);
         }
 
-        /// <summary>
-        /// Được gọi từ Skeleton.Die() khi enemy chết.
-        /// Respawn con khác vào đúng slot.
-        /// </summary>
         public void OnEnemyDied(Skeleton skeleton)
         {
             if (skeleton == null) return;
 
-            // Xoá khỏi danh sách (scan loop sẽ dọn lại, nhưng xoá sớm cũng ok)
             ActiveEnemies.Remove(skeleton.transform);
 
             int slot = skeleton.slotIndex;
             if (slot >= 0 && slot < standPoints.Length && standPoints[slot] != null)
-            {
-                // Respawn enemy mới cho slot này
                 StartCoroutine(SpawnEnemyToSlot(slot));
+        }
+
+        public void TriggerRandomEnemyAttack()
+        {
+            if (towerAttackPoint == null)
+                return;
+
+            List<Skeleton> candidates = new List<Skeleton>();
+
+            foreach (Transform t in ActiveEnemies)
+            {
+                if (!t) continue;
+                Skeleton s = t.GetComponent<Skeleton>();
+                if (s != null && s.CanBeSelectedForAttack())
+                    candidates.Add(s);
             }
+
+            if (candidates.Count == 0)
+                return;
+
+            Skeleton chosen = candidates[Random.Range(0, candidates.Count)];
+
+            chosen.StartAttackSequence(
+                towerAttackPoint.position,
+                attackMoveDuration,
+                attackStayDuration,
+                attackReturnDuration
+            );
         }
 
         IEnumerator ScanEnemiesLoop()
         {
-            var found = new List<Transform>(64);
+            var found = new List<Transform>(8);
 
             while (true)
             {
@@ -195,6 +180,10 @@ namespace ArrowsPuzzle
             foreach (Transform t in ActiveEnemies)
             {
                 if (!t) continue;
+
+                Skeleton s = t.GetComponent<Skeleton>();
+                if (s != null && s.IsInAttackSequence)
+                    continue; // đang float lên / float về → không cho target
 
                 float d2 = (t.position - position).sqrMagnitude;
                 if (d2 < bestSqr)

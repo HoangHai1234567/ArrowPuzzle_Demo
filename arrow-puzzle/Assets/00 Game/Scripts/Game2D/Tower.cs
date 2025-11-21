@@ -21,8 +21,15 @@ namespace ArrowsPuzzle
 
         public void TakeDamage(float damage)
         {
-            // Xử lý khi tháp bị tấn công
-            Debug.Log("Dau qua");
+            Debug.Log("Tower took damage: " + damage);
+
+            health -= damage;
+            if (health <= 0)
+            {
+                // TODO: thêm xử lý tháp vỡ nếu muốn
+            }
+
+            // Shake tower
             transform.DOShakePosition(
                 duration: 0.3f,
                 strength: new Vector3(0.1f, 0f, 0f),
@@ -31,7 +38,8 @@ namespace ArrowsPuzzle
                 snapping: false,
                 fadeOut: true
             );
-        }
+}
+
 
         public void SpawnBounce()
         {

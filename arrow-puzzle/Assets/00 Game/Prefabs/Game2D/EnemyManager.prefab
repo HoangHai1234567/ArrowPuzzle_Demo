@@ -45,18 +45,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultEnemyPrefab: {fileID: 4894296129498236126, guid: 38e6f55f103babf46ac55843f1190073, type: 3}
-  waves:
-  - enemyPrefab: {fileID: 4894296129498236126, guid: 38e6f55f103babf46ac55843f1190073, type: 3}
-    count: 3
-    spawnInterval: 0.4
-  - enemyPrefab: {fileID: 4894296129498236126, guid: 38e6f55f103babf46ac55843f1190073, type: 3}
-    count: 5
-    spawnInterval: 0.4
-  - enemyPrefab: {fileID: 4894296129498236126, guid: 38e6f55f103babf46ac55843f1190073, type: 3}
-    count: 8
-    spawnInterval: 0.4
+  standPoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   portalTag: Portal
   portalOpenDelay: 0.4
   portalCloseDelay: 0.5
   enemyTag: Enemy
   scanInterval: 0.25
+  towerAttackPoint: {fileID: 0}
+  attackMoveDuration: 0.4
+  attackStayDuration: 1.4
+  attackReturnDuration: 0.4

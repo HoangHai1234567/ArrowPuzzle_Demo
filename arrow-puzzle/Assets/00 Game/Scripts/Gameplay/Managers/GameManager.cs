@@ -207,6 +207,11 @@ namespace ArrowsPuzzle
             {
                 return;
             }
+            EnemyManager enemyManager = FindObjectOfType<EnemyManager>();
+            if (enemyManager != null)
+            {
+                enemyManager.TriggerRandomEnemyAttack();
+            }
             if (Lives > 0)
             {
                 Lives--;

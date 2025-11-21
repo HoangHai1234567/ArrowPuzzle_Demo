@@ -15,13 +15,14 @@ namespace ArrowsPuzzle
         public float groundCheckRadius = 0.2f;
         public LayerMask groundLayer;
 
-        private Rigidbody2D rb;
-        private Animator animator;
-        private Transform targetTower;
-        private bool isGrounded;
-        private bool isWalking;
-        private bool isAttacking = false;
-        private bool facingRight = true;
+        Rigidbody2D rb;
+        Animator animator;
+        Transform targetTower;
+
+        bool isGrounded;
+        bool isWalking;
+        bool isAttacking;
+        bool facingRight = true;
 
         [Header("Death Effects")]
         public float deathJumpforce = 5f;
@@ -32,8 +33,25 @@ namespace ArrowsPuzzle
         [Header("Stand Settings")]
         public Vector3 standPosition;
         public int slotIndex = -1;
-        private bool reachedStandPoint = false;
-        private float reachThreshold = 0.5f;
+        [SerializeField] float reachThreshold = 0.05f;
+        bool reachedStandPoint = false;
+
+        [SerializeField] float attackDamage = 20f;
+        Tower tower;
+
+        bool isInAttackSequence = false;
+        public bool IsInAttackSequence => isInAttackSequence;
+
+        Sequence attackSequence;
+
+        public Transform attackPoint;
+        [SerializeField] float attackRange = 0.5f;
+        [SerializeField] LayerMask towerLayer;
+
+        public bool CanBeSelectedForAttack()
+        {
+            return Health > 0f && reachedStandPoint && !isInAttackSequence;
+        }
 
         void Awake()
         {
@@ -44,18 +62,19 @@ namespace ArrowsPuzzle
 
         void FixedUpdate()
         {
+            if (isInAttackSequence)
+            {
+                FaceTowerOnly();
+                return;
+            }
+
             CheckGround();
 
             if (!reachedStandPoint)
-            {
                 MoveToStandPoint();
-            }
             else
-            {
                 StandAndFaceTower();
-            }
 
-            // UPDATE ANIMATOR
             if (animator)
             {
                 animator.SetBool("isWalking", isWalking);
@@ -69,15 +88,13 @@ namespace ArrowsPuzzle
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
         }
 
-        /// <summary>
-        /// Enemy đi từ portal → standPosition
-        /// </summary>
         void MoveToStandPoint()
         {
             Vector2 current = rb.position;
             Vector2 target = standPosition;
 
-            float dist = (target - current).magnitude;
+            Vector2 dir = target - current;
+            float dist = dir.magnitude;
 
             if (dist <= reachThreshold)
             {
@@ -88,18 +105,14 @@ namespace ArrowsPuzzle
                 return;
             }
 
-            Vector2 dir = (target - current).normalized;
+            dir.Normalize();
             rb.velocity = new Vector2(dir.x * Speed, rb.velocity.y);
-
             isWalking = true;
             isAttacking = false;
 
             FaceTowerOnly();
         }
 
-        /// <summary>
-        /// Sau khi đến vị trí → đứng yên, idle, nhìn tower
-        /// </summary>
         void StandAndFaceTower()
         {
             rb.velocity = new Vector2(0f, rb.velocity.y);
@@ -113,8 +126,11 @@ namespace ArrowsPuzzle
             if (targetTower == null) return;
 
             float dx = targetTower.position.x - transform.position.x;
-            if (dx > 0 && !facingRight) Flip();
-            if (dx < 0 && facingRight) Flip();
+
+            if (dx > 0 && !facingRight)
+                Flip();
+            else if (dx < 0 && facingRight)
+                Flip();
         }
 
         void Flip()
@@ -125,10 +141,113 @@ namespace ArrowsPuzzle
             transform.localScale = scale;
         }
 
+        public void StartAttackSequence(
+            Vector3 attackPosition,
+            float moveDuration,
+            float stayDuration,
+            float returnDuration)
+        {
+            if (isInAttackSequence || Health <= 0f) return;
+
+            isInAttackSequence = true;
+            isWalking = false;
+            isAttacking = false;
+
+            if (attackSequence != null && attackSequence.IsActive())
+                attackSequence.Kill();
+
+            Vector3 originPos = transform.position;
+
+            if (rb != null)
+            {
+                rb.velocity = Vector2.zero;
+                rb.isKinematic = true;
+            }
+
+            if (animator != null)
+            {
+                animator.enabled = true;
+                animator.SetBool("isWalking", false);
+                animator.SetBool("isAttacking", false);
+            }
+
+            attackSequence = DOTween.Sequence();
+
+            Vector3 attackPosX = new Vector3(attackPosition.x, originPos.y, originPos.z);
+
+            attackSequence.Append(
+                transform.DOMove(attackPosX, moveDuration).SetEase(Ease.OutQuad)
+            );
+
+            attackSequence.AppendCallback(() =>
+            {
+                isWalking = false;
+                isAttacking = false;
+
+                if (animator)
+                {
+                    animator.SetBool("isWalking", false);
+                    animator.SetBool("isAttacking", false);
+                }
+            });
+
+            float idleBeforeAttack = 0.25f;
+            attackSequence.AppendInterval(idleBeforeAttack);
+
+            attackSequence.AppendCallback(() =>
+            {
+                isAttacking = true;
+
+                if (animator)
+                {
+                    animator.enabled = true;
+                    animator.SetBool("isAttacking", true);
+                }
+            });
+
+            attackSequence.AppendInterval(stayDuration);
+
+            attackSequence.AppendCallback(() =>
+            {
+                isAttacking = false;
+
+                if (animator)
+                    animator.SetBool("isAttacking", false);
+            });
+
+            Vector3 returnPosX = new Vector3(standPosition.x, originPos.y, originPos.z);
+
+            attackSequence.Append(
+                transform.DOMove(returnPosX, returnDuration).SetEase(Ease.InQuad)
+            );
+
+            attackSequence.OnComplete(() =>
+            {
+                if (rb != null) rb.isKinematic = false;
+
+                transform.position = new Vector3(standPosition.x, originPos.y, originPos.z);
+
+                reachedStandPoint = true;
+                isWalking = false;
+                isAttacking = false;
+                isInAttackSequence = false;
+
+                if (animator)
+                {
+                    animator.enabled = true;
+                    animator.SetBool("isWalking", false);
+                    animator.SetBool("isAttacking", false);
+                }
+            });
+        }
+
         public void TakeDamage(float damage)
         {
+            if (Health <= 0f) return;
+
             Health -= damage;
-            if (Health <= 0)
+
+            if (Health <= 0f)
                 Die();
         }
 
@@ -136,6 +255,10 @@ namespace ArrowsPuzzle
         {
             isWalking = false;
             isAttacking = false;
+            isInAttackSequence = false;
+
+            if (attackSequence != null && attackSequence.IsActive())
+                attackSequence.Kill();
 
             if (animator)
             {
@@ -176,9 +299,12 @@ namespace ArrowsPuzzle
             {
                 t += Time.deltaTime;
 
-                Vector3 sp = Camera.main.WorldToViewportPoint(transform.position);
-                if (sp.y < 0 || sp.x < 0 || sp.x > 1)
-                    break;
+                if (Camera.main != null)
+                {
+                    Vector3 screenPoint = Camera.main.WorldToViewportPoint(transform.position);
+                    if (screenPoint.y < 0 || screenPoint.x < 0 || screenPoint.x > 1)
+                        break;
+                }
 
                 yield return null;
             }
@@ -186,7 +312,38 @@ namespace ArrowsPuzzle
             Destroy(gameObject);
         }
 
-        // Attack block — vẫn giữ cho animator nhưng không dùng gameplay
-        void Attack() { }
+        bool IsTowerInRange()
+        {
+            Vector2 center = attackPoint ? (Vector2)attackPoint.position : (Vector2)transform.position;
+            Collider2D hitTower = Physics2D.OverlapCircle(center, attackRange, towerLayer);
+            return hitTower != null;
+        }
+
+        public void Attack()
+        {
+            if (!isAttacking)
+                return;
+
+            if (!IsTowerInRange())
+                return;
+
+            Vector2 center = attackPoint ? (Vector2)attackPoint.position : (Vector2)transform.position;
+            Collider2D hitTower = Physics2D.OverlapCircle(center, attackRange, towerLayer);
+
+            if (hitTower != null)
+            {
+                Tower tw = hitTower.GetComponent<Tower>();
+                if (tw != null)
+                    tw.TakeDamage(attackDamage);
+            }
+        }
+
+        void OnDrawGizmosSelected()
+        {
+            if (attackPoint == null) return;
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+        }
     }
 }
