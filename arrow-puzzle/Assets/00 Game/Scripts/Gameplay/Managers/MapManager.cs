@@ -21,6 +21,12 @@ namespace ArrowsPuzzle
 
         [SerializeField] LineRenderer _lineRendererHighlight;
 
+        [Header("Arrow Bound (world space)")]
+        public Transform boundTopLeft;
+        public Transform boundTopRight;
+        public Transform boundBottomRight;
+        public Transform boundBottomLeft;
+
         #endregion
 
         #region Private properties
@@ -59,7 +65,6 @@ namespace ArrowsPuzzle
 
         #region Event handlers
 
-
         private void GamePlay_OnArrowUnHighlight(Arrow arrow)
         {
             HideHighlightLine(arrow);
@@ -70,27 +75,26 @@ namespace ArrowsPuzzle
             ShowHighlightLine(arrow);
         }
 
-
         private void ShowHighlightLine(Arrow arrow)
         {
             _lineRendererHighlight.gameObject.SetActive(true);
 
-            var head = _levelParent.TransformPoint(new Vector3(arrow.Head.x,arrow.Head.y));
+            // head là local trong levelParent => convert sang world
+            var headLocal = new Vector3(arrow.Head.x, arrow.Head.y);
+            var headWorld = _levelParent.TransformPoint(headLocal);
 
             Vector3 startPoint = Vector3.zero;
             Vector3 endPoint = Vector3.zero;
-
 
             switch (arrow.GoDirection)
             {
                 case Arrow.Direction.Up:
                 case Arrow.Direction.Down:
                     //vertical
-                    startPoint.x = head.x;
-                    endPoint.x = head.x;
+                    startPoint.x = headWorld.x;
+                    endPoint.x = headWorld.x;
 
-
-                    var topPoint = _cam.ScreenToWorldPoint(new Vector3(0,Screen.height));
+                    var topPoint = _cam.ScreenToWorldPoint(new Vector3(0, Screen.height));
                     var bottomPoint = _cam.ScreenToWorldPoint(Vector3.zero);
 
                     startPoint.y = topPoint.y;
@@ -105,44 +109,34 @@ namespace ArrowsPuzzle
                     startPoint.x = leftPoint.x;
                     endPoint.x = rightPoint.x;
 
-                    startPoint.y = head.y;
-                    endPoint.y = head.y;
-                    break;
-                default:
+                    startPoint.y = headWorld.y;
+                    endPoint.y = headWorld.y;
                     break;
             }
 
-
-
             _lineRendererHighlight.positionCount = 2;
-
-
-            _lineRendererHighlight.SetPosition(0,startPoint);
-            _lineRendererHighlight.SetPosition(1,endPoint);
+            _lineRendererHighlight.SetPosition(0, startPoint);
+            _lineRendererHighlight.SetPosition(1, endPoint);
         }
 
         private void HideHighlightLine(Arrow arrow)
         {
             _lineRendererHighlight.gameObject.SetActive(false);
-
         }
 
         #endregion
 
-        public void Create(Level level,Action callback)
+        public void Create(Level level, Action callback)
         {
             _level = level;
             _map = new int[_level.Data.Height, _level.Data.Width];
-            _dots = new Dot[_level.Data.Height,_level.Data.Width];
-
+            _dots = new Dot[_level.Data.Height, _level.Data.Width];
 
             StartCoroutine(_Create());
             IEnumerator _Create()
             {
                 yield return _CreateArrows();
-
                 callback?.Invoke();
-
                 yield return _CreateDots();
             }
         }
@@ -150,8 +144,46 @@ namespace ArrowsPuzzle
         private IEnumerator _CreateArrows()
         {
             yield return null;
-            Arrows = new Dictionary<int,Arrow>();
+            Arrows = new Dictionary<int, Arrow>();
             int outLength = Mathf.Max(_level.Data.Width, _level.Data.Height);
+
+            // === TÍNH SẴN ĐỘ RỘNG/CAO & DỊCH LEVEL PARENT VỀ VỊ TRÍ CUỐI CÙNG ===
+            float width = _level.Data.Width;
+            float height = _level.Data.Height;
+            _midNode = new Vector2Int(_level.Data.Width / 2, _level.Data.Height / 2);
+
+            Vector2 oldLocalPos = _levelParent.localPosition;
+            Vector2 newLocalPos = new Vector2(
+                -width / 2 + 0.5f + _levelParentOffset.x,
+                -height / 2 + 0.5f + _levelParentOffset.y
+            );
+            _levelParent.localPosition = newLocalPos;
+
+            Debug.Log($"[MapManager] _CreateArrows - LevelParent.localPosition {oldLocalPos} -> {newLocalPos}");
+
+            // === TÍNH CÁC GÓC LOCAL CHO ARROW/SPLINE (SAU KHI LEVEL PARENT ĐÃ DỊCH) ===
+            bool hasBounds =
+                boundTopLeft != null &&
+                boundTopRight != null &&
+                boundBottomRight != null &&
+                boundBottomLeft != null;
+
+            Vector3 tlLocal = Vector3.zero;
+            Vector3 trLocal = Vector3.zero;
+            Vector3 brLocal = Vector3.zero;
+            Vector3 blLocal = Vector3.zero;
+
+            if (hasBounds)
+            {
+                // bound* là Transform trong WORLD,
+                // convert sang LOCAL của levelParent ở vị trí ĐÃ DỊCH
+                tlLocal = _levelParent.InverseTransformPoint(boundTopLeft.position);
+                trLocal = _levelParent.InverseTransformPoint(boundTopRight.position);
+                brLocal = _levelParent.InverseTransformPoint(boundBottomRight.position);
+                blLocal = _levelParent.InverseTransformPoint(boundBottomLeft.position);
+
+                Debug.Log($"[MapManager] Bounds local (sau khi dịch parent): TL={tlLocal}, TR={trLocal}, BR={brLocal}, BL={blLocal}");
+            }
 
             int count = 0;
             foreach (var pair in _level.Data.Arrows)
@@ -162,6 +194,9 @@ namespace ArrowsPuzzle
                 {
                     var arrow = Instantiate(_arrowPrefab);
                     arrow.transform.SetParent(_levelParent);
+                    arrow.transform.localPosition = Vector3.zero;
+                    arrow.transform.localRotation = Quaternion.identity;
+                    arrow.transform.localScale = Vector3.one;
                     arrow.SetSpeed(_arrowMoveSpeed);
 
                     for (int i = 0; i < nodes.Length; i++)
@@ -170,9 +205,23 @@ namespace ArrowsPuzzle
                         _map[node.y, node.x] = id;
                     }
 
-                    arrow.SetData(id,nodes,outLength+5+ nodes.Length);
-                    Arrows.Add(id,arrow);
+                    if (hasBounds)
+                    {
+                        // Truyền LOCAL bound cho Arrow (đã tính sau khi LevelParent dịch)
+                        arrow.SetDataWithBounds(
+                            id,
+                            nodes,
+                            outLength + 5 + nodes.Length,
+                            tlLocal, trLocal, brLocal, blLocal
+                        );
+                    }
+                    else
+                    {
+                        // Fallback: đường thẳng outPoint cũ
+                        arrow.SetData(id, nodes, outLength + 5 + nodes.Length);
+                    }
 
+                    Arrows.Add(id, arrow);
                     count++;
                 }
 
@@ -181,14 +230,6 @@ namespace ArrowsPuzzle
                     yield return null;
                 }
             }
-
-            //yield return null;
-            float width = _level.Data.Width;
-            float height = _level.Data.Height;
-            _midNode = new Vector2Int(_level.Data.Width / 2, _level.Data.Height / 2);
-
-            _levelParent.localPosition = new Vector2(-width / 2 + 0.5f + _levelParentOffset.x,
-                -height / 2 + 0.5f + _levelParentOffset.y);
         }
 
         private IEnumerator _CreateDots()
@@ -203,7 +244,7 @@ namespace ArrowsPuzzle
                     dot.transform.localPosition = new Vector3(node.x, node.y);
                     dot.gameObject.SetActive(false);
 
-                    _dots[node.y,node.x] = dot;
+                    _dots[node.y, node.x] = dot;
 
                     count++;
                 }
@@ -215,13 +256,13 @@ namespace ArrowsPuzzle
             }
         }
 
-        public bool ArrowCanGo(Arrow arrow,out int hitId,out Vector2Int hitNode)
+        public bool ArrowCanGo(Arrow arrow, out int hitId, out Vector2Int hitNode)
         {
             var head = arrow.Head;
             switch (arrow.GoDirection)
             {
                 case ArrowsPuzzle.Arrow.Direction.Up:
-                    for (int y = head.y+1; y < _level.Data.Height; y++)
+                    for (int y = head.y + 1; y < _level.Data.Height; y++)
                     {
                         if (_map[y, head.x] != 0)
                         {
@@ -232,18 +273,18 @@ namespace ArrowsPuzzle
                     }
                     break;
                 case ArrowsPuzzle.Arrow.Direction.Right:
-                    for (int x = head.x+1; x <_level.Data.Width; x++)
+                    for (int x = head.x + 1; x < _level.Data.Width; x++)
                     {
                         if (_map[head.y, x] != 0)
                         {
-                            hitId = _map[head.y,x];
+                            hitId = _map[head.y, x];
                             hitNode = new Vector2Int(x, head.y);
                             return false;
                         }
                     }
                     break;
                 case ArrowsPuzzle.Arrow.Direction.Down:
-                    for (int y = head.y-1; y >=0; y--)
+                    for (int y = head.y - 1; y >= 0; y--)
                     {
                         if (_map[y, head.x] != 0)
                         {
@@ -254,17 +295,15 @@ namespace ArrowsPuzzle
                     }
                     break;
                 case ArrowsPuzzle.Arrow.Direction.Left:
-                    for (int x = head.x-1; x >= 0; x--)
+                    for (int x = head.x - 1; x >= 0; x--)
                     {
                         if (_map[head.y, x] != 0)
                         {
-                            hitId = _map[head.y,x];
+                            hitId = _map[head.y, x];
                             hitNode = new Vector2Int(x, head.y);
                             return false;
                         }
                     }
-                    break;
-                default:
                     break;
             }
 
@@ -283,22 +322,18 @@ namespace ArrowsPuzzle
                 }
                 Arrows.Remove(arrow.ID);
             }
-
         }
 
         public bool CheckClickArrow(Vector3 position, out Arrow arrow)
         {
-            //Debug.Log(position);
             var localPos = _levelParent.InverseTransformPoint(position);
 
-            //Debug.Log(position);
             int x = Mathf.RoundToInt(localPos.x);
             int y = Mathf.RoundToInt(localPos.y);
-            //Debug.Log($"X: {x}, Y: {y}");
-            if (IsInsideNode(x,y))
+            if (IsInsideNode(x, y))
             {
                 int id = _map[y, x];
-                if (id!=0 && Arrows.ContainsKey(id))
+                if (id != 0 && Arrows.ContainsKey(id))
                 {
                     var tmpArrow = Arrows[id];
 
@@ -329,14 +364,14 @@ namespace ArrowsPuzzle
 
         public bool IsLevelCleared()
         {
-            return Arrows.Count==0;
+            return Arrows.Count == 0;
         }
 
         public void ShowArrowDots(Arrow arrow)
         {
             foreach (var node in arrow.Nodes)
             {
-                _dots[node.y,node.x].Show();
+                _dots[node.y, node.x].Show();
             }
         }
 
@@ -359,7 +394,7 @@ namespace ArrowsPuzzle
                 float radius = 0;
                 int value = Mathf.Max(_level.Data.Width, _level.Data.Height);
                 var wait = new WaitForSeconds(0.05f);
-                while (radius<value)
+                while (radius < value)
                 {
                     for (int r = 0; r <= Mathf.FloorToInt(radius * Mathf.Sqrt(0.5f)); r++)
                     {
@@ -386,7 +421,7 @@ namespace ArrowsPuzzle
         {
             if (IsInsideNode(x, y))
             {
-                _dots[y,x]?.Win();
+                _dots[y, x]?.Win();
             }
         }
 
@@ -401,7 +436,7 @@ namespace ArrowsPuzzle
                 switch (arrow.GoDirection)
                 {
                     case Arrow.Direction.Up:
-                        for (int y = head.y+1; y < _level.Data.Height; y++)
+                        for (int y = head.y + 1; y < _level.Data.Height; y++)
                         {
                             if (_map[y, head.x] != 0)
                             {
@@ -421,7 +456,7 @@ namespace ArrowsPuzzle
                         }
                         break;
                     case Arrow.Direction.Down:
-                        for (int y = head.y -1; y > -1; y--)
+                        for (int y = head.y - 1; y > -1; y--)
                         {
                             if (_map[y, head.x] != 0)
                             {
@@ -439,8 +474,6 @@ namespace ArrowsPuzzle
                                 break;
                             }
                         }
-                        break;
-                    default:
                         break;
                 }
 
