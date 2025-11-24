@@ -62,9 +62,6 @@ namespace ArrowsPuzzle
         isFiringStored = false;
     }
 
-    /// <summary>
-    /// Bắn một viên vào enemy gần nhất (nếu có).
-    /// </summary>
     public void ShootOneImmediate()
     {
         if (!enemyManager || !bulletPrefab || !firePos) return;

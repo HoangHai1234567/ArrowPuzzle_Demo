@@ -224,22 +224,19 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  deathJumpforce: 5
+  deathTorque: 10
+  deathGravotuyScale: 2
+  maxDeathTime: 4
   standPosition: {x: 0, y: 0, z: 0}
   slotIndex: -1
   reachThreshold: 0.05
+  attackDamage: 20
   attackPoint: {fileID: 543654833962479452}
   attackRange: 0.5
   towerLayer:
     serializedVersion: 2
     m_Bits: 128
-  attackDamage: 20
-  attacksPerSequence: 3
-  attackAnimDuration: 0.25
-  timeBetweenAttacks: 0.1
-  deathJumpforce: 5
-  deathTorque: 10
-  deathGravityScale: 2
-  maxDeathTime: 4
 --- !u!114 &-3254073200273530054
 MonoBehaviour:
   m_ObjectHideFlags: 0

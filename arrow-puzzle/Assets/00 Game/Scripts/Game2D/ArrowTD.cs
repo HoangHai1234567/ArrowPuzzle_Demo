@@ -11,24 +11,51 @@ namespace ArrowsPuzzle
         public Rigidbody2D rigidBody2D;
         public bool hasHit = false;
 
-        bool stuck = false;
+        [Header("Range / Lifetime")]
+        [Tooltip("Mũi tên sẽ tự hủy nếu bay xa hơn khoảng cách này (tính từ vị trí spawn).")]
+        public float maxTravelDistance = 30f;
+
+        [Tooltip("Thời gian tối đa tồn tại (fallback nếu không trúng gì).")]
+        public float maxLifeTime = 5f;
+
+        private bool stuck = false;
+        private Vector3 _spawnPosition;
+        private float _spawnTime;
 
         void Start()
         {
-            rigidBody2D.velocity = transform.right * Speed;
+            _spawnPosition = transform.position;
+            _spawnTime = Time.time;
+
+            if (rigidBody2D == null)
+                rigidBody2D = GetComponent<Rigidbody2D>();
+
+            if (rigidBody2D != null)
+            {
+                rigidBody2D.velocity = transform.right * Speed;
+            }
         }
 
         void Update()
         {
-            CheckBulletRange();
-            if (!stuck) RotateArrow();
+            if (!stuck)
+            {
+                RotateArrow();
+                CheckBulletRangeByDistanceOrTime();
+            }
         }
 
-        void CheckBulletRange()
+        void CheckBulletRangeByDistanceOrTime()
         {
-            if (Camera.main == null) return;
-            Vector3 screenPoint = Camera.main.WorldToViewportPoint(transform.position);
-            if (screenPoint.x < 0 || screenPoint.x > 1 || screenPoint.y < 0 || screenPoint.y > 1)
+            // Giới hạn theo khoảng cách
+            if (Vector3.Distance(transform.position, _spawnPosition) > maxTravelDistance)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            // Giới hạn theo thời gian sống
+            if (Time.time - _spawnTime > maxLifeTime)
             {
                 Destroy(gameObject);
             }
@@ -36,7 +63,11 @@ namespace ArrowsPuzzle
 
         void RotateArrow()
         {
+            if (rigidBody2D == null) return;
+
             Vector2 direction = rigidBody2D.velocity;
+            if (direction.sqrMagnitude <= 0.0001f) return;
+
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
         }
@@ -48,17 +79,19 @@ namespace ArrowsPuzzle
 
             hasHit = true;
 
-
             Skeleton enemy = hitInfo.GetComponent<Skeleton>();
-            if (enemy != null) enemy.TakeDamage(ArrowDamage);
+            if (enemy != null)
+                enemy.TakeDamage(ArrowDamage);
 
-
-            rigidBody2D.velocity = Vector2.zero;
-            rigidBody2D.angularVelocity = 0f;
-
+            if (rigidBody2D != null)
+            {
+                rigidBody2D.velocity = Vector2.zero;
+                rigidBody2D.angularVelocity = 0f;
+            }
 
             Rigidbody2D enemyRb = hitInfo.attachedRigidbody;
             if (enemyRb == null) enemyRb = hitInfo.GetComponentInParent<Rigidbody2D>();
+
             if (enemyRb != null)
             {
                 // Ước lượng điểm găm bằng điểm gần nhất trên collider enemy

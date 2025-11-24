@@ -19,13 +19,17 @@ namespace ArrowsPuzzle
 
         [SerializeField] private Vector2 _levelParentOffset = Vector2.zero;
 
-        [SerializeField] LineRenderer _lineRendererHighlight;
+        [SerializeField] private LineRenderer _lineRendererHighlight;
 
         [Header("Arrow Bound (world space)")]
         public Transform boundTopLeft;
         public Transform boundTopRight;
         public Transform boundBottomRight;
         public Transform boundBottomLeft;
+
+        [Header("Tower path points (children of LevelParent)")]
+        public Transform towerBaseOnBound;   // điểm nằm trên rìa bound, dưới chân tháp
+        public Transform towerNearPoint;     // điểm ngay sát chân tháp (bên trong)
 
         #endregion
 
@@ -79,7 +83,6 @@ namespace ArrowsPuzzle
         {
             _lineRendererHighlight.gameObject.SetActive(true);
 
-            // head là local trong levelParent => convert sang world
             var headLocal = new Vector3(arrow.Head.x, arrow.Head.y);
             var headWorld = _levelParent.TransformPoint(headLocal);
 
@@ -90,7 +93,6 @@ namespace ArrowsPuzzle
             {
                 case Arrow.Direction.Up:
                 case Arrow.Direction.Down:
-                    //vertical
                     startPoint.x = headWorld.x;
                     endPoint.x = headWorld.x;
 
@@ -100,9 +102,9 @@ namespace ArrowsPuzzle
                     startPoint.y = topPoint.y;
                     endPoint.y = bottomPoint.y;
                     break;
+
                 case Arrow.Direction.Right:
                 case Arrow.Direction.Left:
-                    //horizontal
                     var leftPoint = _cam.ScreenToWorldPoint(Vector3.zero);
                     var rightPoint = _cam.ScreenToWorldPoint(new Vector3(Screen.width, 0));
 
@@ -133,6 +135,7 @@ namespace ArrowsPuzzle
             _dots = new Dot[_level.Data.Height, _level.Data.Width];
 
             StartCoroutine(_Create());
+
             IEnumerator _Create()
             {
                 yield return _CreateArrows();
@@ -147,7 +150,6 @@ namespace ArrowsPuzzle
             Arrows = new Dictionary<int, Arrow>();
             int outLength = Mathf.Max(_level.Data.Width, _level.Data.Height);
 
-            // === TÍNH SẴN ĐỘ RỘNG/CAO & DỊCH LEVEL PARENT VỀ VỊ TRÍ CUỐI CÙNG ===
             float width = _level.Data.Width;
             float height = _level.Data.Height;
             _midNode = new Vector2Int(_level.Data.Width / 2, _level.Data.Height / 2);
@@ -161,28 +163,39 @@ namespace ArrowsPuzzle
 
             Debug.Log($"[MapManager] _CreateArrows - LevelParent.localPosition {oldLocalPos} -> {newLocalPos}");
 
-            // === TÍNH CÁC GÓC LOCAL CHO ARROW/SPLINE (SAU KHI LEVEL PARENT ĐÃ DỊCH) ===
             bool hasBounds =
                 boundTopLeft != null &&
                 boundTopRight != null &&
                 boundBottomRight != null &&
                 boundBottomLeft != null;
 
+            bool hasTowerPath =
+                towerBaseOnBound != null &&
+                towerNearPoint != null;
+
             Vector3 tlLocal = Vector3.zero;
             Vector3 trLocal = Vector3.zero;
             Vector3 brLocal = Vector3.zero;
             Vector3 blLocal = Vector3.zero;
+            Vector3 towerBaseLocal = Vector3.zero;
+            Vector3 towerNearLocal = Vector3.zero;
 
             if (hasBounds)
             {
-                // bound* là Transform trong WORLD,
-                // convert sang LOCAL của levelParent ở vị trí ĐÃ DỊCH
                 tlLocal = _levelParent.InverseTransformPoint(boundTopLeft.position);
                 trLocal = _levelParent.InverseTransformPoint(boundTopRight.position);
                 brLocal = _levelParent.InverseTransformPoint(boundBottomRight.position);
                 blLocal = _levelParent.InverseTransformPoint(boundBottomLeft.position);
 
-                Debug.Log($"[MapManager] Bounds local (sau khi dịch parent): TL={tlLocal}, TR={trLocal}, BR={brLocal}, BL={blLocal}");
+                Debug.Log($"[MapManager] Bounds local: TL={tlLocal}, TR={trLocal}, BR={brLocal}, BL={blLocal}");
+            }
+
+            if (hasTowerPath)
+            {
+                towerBaseLocal = _levelParent.InverseTransformPoint(towerBaseOnBound.position);
+                towerNearLocal = _levelParent.InverseTransformPoint(towerNearPoint.position);
+
+                Debug.Log($"[MapManager] Tower path local: base={towerBaseLocal}, near={towerNearLocal}");
             }
 
             int count = 0;
@@ -205,9 +218,20 @@ namespace ArrowsPuzzle
                         _map[node.y, node.x] = id;
                     }
 
-                    if (hasBounds)
+                    if (hasBounds && hasTowerPath)
                     {
-                        // Truyền LOCAL bound cho Arrow (đã tính sau khi LevelParent dịch)
+                        // Có cả bound và đường đi lên tower
+                        arrow.SetDataWithBounds(
+                            id,
+                            nodes,
+                            outLength + 5 + nodes.Length,
+                            tlLocal, trLocal, brLocal, blLocal,
+                            towerBaseLocal, towerNearLocal
+                        );
+                    }
+                    else if (hasBounds)
+                    {
+                        // Chỉ có bound, không có tower path
                         arrow.SetDataWithBounds(
                             id,
                             nodes,
@@ -217,7 +241,7 @@ namespace ArrowsPuzzle
                     }
                     else
                     {
-                        // Fallback: đường thẳng outPoint cũ
+                        // Không có bound: bắn thẳng ra ngoài
                         arrow.SetData(id, nodes, outLength + 5 + nodes.Length);
                     }
 
@@ -261,7 +285,7 @@ namespace ArrowsPuzzle
             var head = arrow.Head;
             switch (arrow.GoDirection)
             {
-                case ArrowsPuzzle.Arrow.Direction.Up:
+                case Arrow.Direction.Up:
                     for (int y = head.y + 1; y < _level.Data.Height; y++)
                     {
                         if (_map[y, head.x] != 0)
@@ -272,7 +296,7 @@ namespace ArrowsPuzzle
                         }
                     }
                     break;
-                case ArrowsPuzzle.Arrow.Direction.Right:
+                case Arrow.Direction.Right:
                     for (int x = head.x + 1; x < _level.Data.Width; x++)
                     {
                         if (_map[head.y, x] != 0)
@@ -283,7 +307,7 @@ namespace ArrowsPuzzle
                         }
                     }
                     break;
-                case ArrowsPuzzle.Arrow.Direction.Down:
+                case Arrow.Direction.Down:
                     for (int y = head.y - 1; y >= 0; y--)
                     {
                         if (_map[y, head.x] != 0)
@@ -294,7 +318,7 @@ namespace ArrowsPuzzle
                         }
                     }
                     break;
-                case ArrowsPuzzle.Arrow.Direction.Left:
+                case Arrow.Direction.Left:
                     for (int x = head.x - 1; x >= 0; x--)
                     {
                         if (_map[head.y, x] != 0)

@@ -102,7 +102,7 @@ namespace ArrowsPuzzle
         }
 
         /// <summary>
-        /// Bản gốc – bắn thẳng ra outPoint rồi biến mất.
+        /// Bắn thẳng ra ngoài (bản gốc).
         /// </summary>
         public void SetData(int id, Vector2Int[] nodes, int outNodeLength)
         {
@@ -171,10 +171,7 @@ namespace ArrowsPuzzle
         }
 
         /// <summary>
-        /// Dùng 4 góc bound đã chuyển sang LOCAL (cùng hệ tọa độ với node / LevelParent).
-        /// 1. Tính vector bay của mũi tên (từ node kế cuối đến node cuối).
-        /// 2. Tìm điểm giao P giữa tia (headLocal + t*dir) với hình chữ nhật TL-TR-BR-BL.
-        /// 3. Xây spline đi: nodes gốc -> head -> P -> quay quanh 4 góc theo chiều kim đồng hồ.
+        /// Overload: chỉ có bound 4 góc.
         /// </summary>
         public void SetDataWithBounds(
             int id,
@@ -184,6 +181,49 @@ namespace ArrowsPuzzle
             Vector3 boundTopRightLocal,
             Vector3 boundBottomRightLocal,
             Vector3 boundBottomLeftLocal)
+        {
+            SetDataWithBoundsInternal(
+                id, nodes, outNodeLength,
+                boundTopLeftLocal, boundTopRightLocal, boundBottomRightLocal, boundBottomLeftLocal,
+                false, Vector3.zero, Vector3.zero
+            );
+        }
+
+        /// <summary>
+        /// Overload: có bound + đường đi lên tháp (towerBaseLocal, towerNearLocal).
+        /// </summary>
+        public void SetDataWithBounds(
+            int id,
+            Vector2Int[] nodes,
+            int outNodeLength,
+            Vector3 boundTopLeftLocal,
+            Vector3 boundTopRightLocal,
+            Vector3 boundBottomRightLocal,
+            Vector3 boundBottomLeftLocal,
+            Vector3 towerBaseLocal,
+            Vector3 towerNearLocal)
+        {
+            SetDataWithBoundsInternal(
+                id, nodes, outNodeLength,
+                boundTopLeftLocal, boundTopRightLocal, boundBottomRightLocal, boundBottomLeftLocal,
+                true, towerBaseLocal, towerNearLocal
+            );
+        }
+
+        /// <summary>
+        /// Core: tính P + path quanh bound, có thể dừng tại towerBaseLocal rồi đi lên towerNearLocal.
+        /// </summary>
+        private void SetDataWithBoundsInternal(
+            int id,
+            Vector2Int[] nodes,
+            int outNodeLength,
+            Vector3 boundTopLeftLocal,
+            Vector3 boundTopRightLocal,
+            Vector3 boundBottomRightLocal,
+            Vector3 boundBottomLeftLocal,
+            bool hasTowerPath,
+            Vector3 towerBaseLocal,
+            Vector3 towerNearLocal)
         {
             ID = id;
             OutNodeLength = outNodeLength;
@@ -202,18 +242,18 @@ namespace ArrowsPuzzle
                 GoDirection = dirInt.y > 0 ? Direction.Up : Direction.Down;
             }
 
-            // Làm việc hoàn toàn trong LOCAL của level/map (arrow.parent)
             Vector3 headLocal = new Vector3(head.x, head.y, 0);
             Vector3 bodyLocal = new Vector3(firstBody.x, firstBody.y, 0);
             Vector3 rayDirLocal = (headLocal - bodyLocal).normalized;
 
-            Debug.Log($"[Arrow] SetDataWithBounds LOCAL ID={ID} GoDir={GoDirection} headLocal={headLocal}");
+            Debug.Log($"[Arrow] SetDataWithBounds LOCAL ID={ID} GoDir={GoDirection} headLocal={headLocal}, bodyLocal={bodyLocal}");
 
-            // 4 góc local
             Vector3 TL = boundTopLeftLocal;      // A
             Vector3 TR = boundTopRightLocal;     // B
             Vector3 BR = boundBottomRightLocal;  // D
             Vector3 BL = boundBottomLeftLocal;   // C
+
+            Debug.Log($"[Arrow] Bounds LOCAL: TL={TL}, TR={TR}, BR={BR}, BL={BL}");
 
             Vector2 p = headLocal;
             Vector2 r = rayDirLocal;
@@ -239,7 +279,7 @@ namespace ArrowsPuzzle
                 }
             }
 
-            // Chạy hoàn toàn trong LOCAL
+            // P trên cạnh nào?
             TestEdge(TL, TR, "Top");     // AB
             TestEdge(TR, BR, "Right");   // BD
             TestEdge(BR, BL, "Bottom");  // DC
@@ -256,20 +296,21 @@ namespace ArrowsPuzzle
             Debug.Log($"[Arrow] ID={ID} hit bound LOCAL tại {boundPointLocal}, edge={bestEdge}, t={bestT}");
 
             StartCoroutine(_Create());
+
             IEnumerator _Create()
             {
                 yield return null;
 
                 List<SplinePoint> ps = new();
 
-                // 1) Tất cả node gốc trừ head
+                // 1) Path gốc (trừ head)
                 for (int i = 0; i < nodes.Length - 1; i++)
                 {
                     var node = nodes[i];
                     ps.Add(new SplinePoint(new Vector3(node.x, node.y, 0)));
                 }
 
-                // Helper chia đoạn thẳng start->end thành các point đều nhau (theo khoảng cách ~1 unit)
+                // helper chia đoạn
                 void AddSegmentPoints(Vector3 start, Vector3 end, bool includeStart)
                 {
                     Vector3 seg = end - start;
@@ -294,43 +335,68 @@ namespace ArrowsPuzzle
                     ps.Add(new SplinePoint(end));
                 }
 
-                // 2) headLocal -> boundPointLocal (P)
+                // 2) headLocal -> P
                 AddSegmentPoints(headLocal, boundPointLocal, true);
 
-                // 3) Đi quanh 4 góc theo cạnh P đang nằm
-                // corners: 0=TL(A), 1=TR(B), 2=BR(D), 3=BL(C)
+                // 3) Build path quanh bound
                 Vector3[] corners = new[] { TL, TR, BR, BL };
-                int[] order;
-
+                int startEdgeIndex;
                 switch (bestEdge)
                 {
-                    case "Top":
-                        // P trên AB: P -> B -> D -> C -> A
-                        order = new[] { 1, 2, 3, 0 };
-                        break;
-                    case "Right":
-                        // P trên BD: P -> D -> C -> A -> B
-                        order = new[] { 2, 3, 0, 1 };
-                        break;
-                    case "Bottom":
-                        // P trên DC: P -> C -> A -> B -> D
-                        order = new[] { 3, 0, 1, 2 };
-                        break;
+                    case "Top": startEdgeIndex = 0; break;    // TL->TR
+                    case "Right": startEdgeIndex = 1; break;  // TR->BR
+                    case "Bottom": startEdgeIndex = 2; break; // BR->BL
                     case "Left":
-                    default:
-                        // P trên CA: P -> A -> B -> D -> C
-                        order = new[] { 0, 1, 2, 3 };
-                        break;
+                    default: startEdgeIndex = 3; break;       // BL->TL
                 }
 
-                Debug.Log($"[Arrow] ID={ID} edge={bestEdge}, order={order[0]}-{order[1]}-{order[2]}-{order[3]}");
-
-                Vector3 current = boundPointLocal;
-                foreach (int idx in order)
+                if (hasTowerPath)
                 {
-                    Vector3 corner = corners[idx];
-                    AddSegmentPoints(current, corner, false);
-                    current = corner;
+                    Debug.Log($"[Arrow] ID={ID} hasTowerPath base={towerBaseLocal}, near={towerNearLocal}");
+
+                    Vector3 current = boundPointLocal;
+                    int edgeIndex = startEdgeIndex;
+                    bool reachedTower = false;
+                    int safety = 0;
+
+                    while (!reachedTower && safety++ < 10)
+                    {
+                        int sIdx = edgeIndex;
+                        int eIdx = (edgeIndex + 1) % 4;
+
+                        Vector3 a = corners[sIdx];
+                        Vector3 b = corners[eIdx];
+
+                        if (PointOnSegment(towerBaseLocal, a, b, 0.05f))
+                        {
+                            Debug.Log($"[Arrow] ID={ID} towerBase nằm trên cạnh {edgeIndex} từ {a} tới {b}");
+                            // đi từ current -> towerBase
+                            AddSegmentPoints(current, towerBaseLocal, false);
+                            // rồi đi lên towerNear và dừng
+                            AddSegmentPoints(towerBaseLocal, towerNearLocal, false);
+                            reachedTower = true;
+                            break;
+                        }
+                        else
+                        {
+                            // đi tới corner tiếp theo
+                            AddSegmentPoints(current, b, false);
+                            current = b;
+                            edgeIndex = (edgeIndex + 1) % 4;
+                        }
+                    }
+
+                    if (!reachedTower)
+                    {
+                        Debug.LogWarning($"[Arrow] ID={ID} không tìm được cạnh chứa towerBase, fallback đi hết 4 góc.");
+                        // fallback: như case không có towerPath
+                        BuildFullRectFromP(ps, corners, boundPointLocal, bestEdge, AddSegmentPoints);
+                    }
+                }
+                else
+                {
+                    // Không có tower path: đi hết 4 góc như cũ
+                    BuildFullRectFromP(ps, corners, boundPointLocal, bestEdge, AddSegmentPoints);
                 }
 
                 _segments = ps.Count - 1;
@@ -346,6 +412,71 @@ namespace ArrowsPuzzle
                 _length = _percentHead - _percentTail;
                 UpdatePath(_percentHead, _percentTail);
             }
+        }
+
+        /// <summary>
+        /// Helper: đi quanh cả 4 góc theo thứ tự clockwise từ điểm P (boundPointLocal).
+        /// </summary>
+        private void BuildFullRectFromP(
+            List<SplinePoint> ps,
+            Vector3[] corners,
+            Vector3 boundPointLocal,
+            string bestEdge,
+            Action<Vector3, Vector3, bool> AddSegmentPoints)
+        {
+            int[] order;
+            switch (bestEdge)
+            {
+                case "Top":
+                    // P trên AB: P -> B -> D -> C -> A
+                    order = new[] { 1, 2, 3, 0 };
+                    break;
+                case "Right":
+                    // P trên BD: P -> D -> C -> A -> B
+                    order = new[] { 2, 3, 0, 1 };
+                    break;
+                case "Bottom":
+                    // P trên DC: P -> C -> A -> B -> D
+                    order = new[] { 3, 0, 1, 2 };
+                    break;
+                case "Left":
+                default:
+                    // P trên CA: P -> A -> B -> D -> C
+                    order = new[] { 0, 1, 2, 3 };
+                    break;
+            }
+
+            Debug.Log($"[Arrow] BuildFullRectFromP edge={bestEdge}, order={order[0]}-{order[1]}-{order[2]}-{order[3]}");
+
+            Vector3 current = boundPointLocal;
+            foreach (int idx in order)
+            {
+                Vector3 corner = corners[idx];
+                AddSegmentPoints(current, corner, false);
+                current = corner;
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra 1 điểm có nằm trên đoạn AB hay không (theo 2D, dùng x,y).
+        /// </summary>
+        private bool PointOnSegment(Vector3 p, Vector3 a, Vector3 b, float tolerance = 0.01f)
+        {
+            Vector2 ap = new Vector2(p.x - a.x, p.y - a.y);
+            Vector2 ab = new Vector2(b.x - a.x, b.y - a.y);
+
+            // kiểm tra gần như thẳng hàng: cross ~ 0
+            float cross = ap.x * ab.y - ap.y * ab.x;
+            if (Mathf.Abs(cross) > tolerance)
+            {
+                return false;
+            }
+
+            float dot = Vector2.Dot(ap, ab);
+            if (dot < -tolerance) return false;
+            if (dot - ab.sqrMagnitude > tolerance) return false;
+
+            return true;
         }
 
         private void UpdatePath(double headPercent, double tailPercent)
@@ -438,8 +569,8 @@ namespace ArrowsPuzzle
 
             if (Mathf.Abs(rxs) < 1e-6f) return false;
 
-            float t = Cross(qmp, s) / rxs; // tham số trên ray
-            float u = Cross(qmp, r) / rxs; // tham số trên đoạn
+            float t = Cross(qmp, s) / rxs;
+            float u = Cross(qmp, r) / rxs;
 
             if (t >= 0f && u >= 0f && u <= 1f)
             {

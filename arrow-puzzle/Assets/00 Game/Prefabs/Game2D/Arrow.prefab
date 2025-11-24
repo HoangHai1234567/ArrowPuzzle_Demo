@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 86856218681337431}
   - component: {fileID: 4874709188051781943}
   - component: {fileID: 4909980139918699617}
-  m_Layer: 9
+  m_Layer: 11
   m_Name: Arrow
   m_TagString: Arrow
   m_Icon: {fileID: 0}
@@ -175,3 +175,5 @@ MonoBehaviour:
   ArrowDamage: 5
   rigidBody2D: {fileID: 4874709188051781943}
   hasHit: 0
+  maxTravelDistance: 30
+  maxLifeTime: 5
