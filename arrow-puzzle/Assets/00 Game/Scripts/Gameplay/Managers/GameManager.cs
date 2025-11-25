@@ -126,12 +126,14 @@ namespace ArrowsPuzzle
 
         private void GamePlay_OnGameReplay()
         {
-            // Reset băng đạn TRƯỚC khi load lại scene
             var shooter = FindObjectOfType<PlayerShoot>();
             if (shooter != null)
             {
                 shooter.ResetMagazine();
             }
+
+            // kill tween hiện tại của level cũ
+            DOTween.KillAll();
 
             LoadGameScene();
         }
@@ -142,27 +144,33 @@ namespace ArrowsPuzzle
             PlayerPrefs.SetInt(Values.GameDataKeys.Level, Level);
             PlayerPrefs.Save();
 
-            // Reset băng đạn TRƯỚC khi sang level mới
             var shooter = FindObjectOfType<PlayerShoot>();
             if (shooter != null)
             {
                 shooter.ResetMagazine();
             }
 
-            //Reset TDGameManager
             var tdManager = FindObjectOfType<TDGameManager>();
             if (tdManager != null)
-            {  
+            {
                 tdManager.ResetTDGame();
             }
+
+            DOTween.KillAll();
 
             LoadGameScene();
         }
 
         private void LoadGameScene()
         {
-            DOTween.KillAll();
-            SceneManager.LoadScene(Values.Game.GameSceneName);
+            if (SceneTransition.Instance != null)
+            {
+                SceneTransition.Instance.LoadSceneWithTransition(Values.Game.GameSceneName);
+            }
+            else
+            {
+                SceneManager.LoadScene(Values.Game.GameSceneName);
+            }
         }
 
         private void GamePlay_OnGameInit(GameManager gameManager)

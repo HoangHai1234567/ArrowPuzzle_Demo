@@ -1,8 +1,8 @@
 using System.Collections;
-using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace ArrowsPuzzle
@@ -29,15 +29,29 @@ namespace ArrowsPuzzle
             EventManager.GamePlay.OnLostLives += GamePlay_OnLostLives;
 
             _buttonRestart.onClick.AddListener(EventManager.GamePlay.OnGameReplayEvent);
-            _buttonHome.onClick.AddListener(() =>
-            {
 
-            });
+            _buttonHome.onClick.AddListener(OnHomeButtonClicked);
 
             _buttonHint.onClick.AddListener(() =>
             {
                 EventManager.GamePlay.OnNeedHintEvent();
             });
+        }
+
+        private void OnHomeButtonClicked()
+        {
+            // Kill tween trong level hiện tại trước khi chuyển cảnh
+            DOTween.KillAll();
+
+            // Dùng transition nếu có, không thì load thẳng
+            if (SceneTransition.Instance != null)
+            {
+                SceneTransition.Instance.LoadSceneWithTransition(Values.Game.HomeSceneName);
+            }
+            else
+            {
+                SceneManager.LoadScene(Values.Game.HomeSceneName);
+            }
         }
 
         private void GamePlay_OnLevelLoaded(Level level)
@@ -68,7 +82,7 @@ namespace ArrowsPuzzle
                         .SetEase(Ease.OutBack);
                     yield return new WaitForSeconds(0.2f);
                 }
-                
+
             }
 
         }

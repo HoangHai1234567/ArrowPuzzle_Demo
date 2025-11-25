@@ -544,7 +544,7 @@ namespace ArrowsPuzzle
                     to,
                     speed
                 )
-                .SetEase(Ease.Linear)
+                .SetEase(Ease.InSine)
                 .OnComplete(() =>
                 {
                     IsMoving = false;

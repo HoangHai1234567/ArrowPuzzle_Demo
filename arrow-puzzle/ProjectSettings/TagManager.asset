@@ -46,11 +46,14 @@ TagManager:
   - name: BackGround
     uniqueID: 1133115041
     locked: 0
-  - name: SceneObject
-    uniqueID: 222937781
-    locked: 0
   - name: Tilemap
     uniqueID: 2467397863
+    locked: 0
+  - name: Arrow
+    uniqueID: 3474550099
+    locked: 0
+  - name: SceneObject
+    uniqueID: 222937781
     locked: 0
   - name: Player
     uniqueID: 1178269717
